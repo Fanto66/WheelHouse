@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WheelHouse Prototype</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -30,7 +30,7 @@
             color: var(--text-dark);
         }
 
-        /* Simulation de l'écran d'un smartphone */
+        /* 💻 PAR DÉFAUT : Format Smartphone simulé sur Ordinateur Bureau */
         .phone-container {
             width: 375px;
             height: 812px;
@@ -44,13 +44,30 @@
             border: 8px solid #333;
         }
 
+        /* 📱 RESPONSIVE : Plein écran automatique si on est sur un vrai Smartphone */
+        @media (max-width: 450px), (max-device-width: 450px) {
+            body {
+                background-color: var(--bg-light);
+                align-items: flex-start;
+                height: 100vh;
+                overflow: hidden;
+            }
+            .phone-container {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+                border: none;
+                box-shadow: none;
+            }
+        }
+
         /* Écrans */
         .screen {
             display: none;
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            padding-bottom: 80px;
+            padding-bottom: 90px; /* Un peu plus d'espace en bas pour les écrans à encoche */
         }
 
         .screen.active {
@@ -110,6 +127,7 @@
             margin-top: 8px;
             text-align: center;
             text-decoration: none;
+            -webkit-tap-highlight-color: transparent; /* Évite le flash bleu sur mobile */
         }
 
         .btn:disabled {
@@ -130,7 +148,7 @@
             color: white;
         }
 
-        /* ⚠️ STYLE DEMO / PROTOTYPAGE (JAUNE ET MONOSPACE) */
+        /* ⚠️ STYLE DEMO / PROTOTYPAGE */
         .demo-element {
             font-family: 'Courier New', Courier, monospace !important;
             background: #fff3cd !important;
@@ -154,18 +172,19 @@
             margin-bottom: 10px;
         }
 
-        /* Barre de navigation basse */
+        /* Barre de navigation basse (ajustée pour coller parfaitement sur mobile) */
         .nav-bar {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 70px;
+            height: 75px;
             background-color: white;
             border-top: 1px solid #ddd;
             display: none;
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom); /* Gère l'encoche du bas sur iOS/Android */
         }
 
         .nav-item {
@@ -174,6 +193,7 @@
             cursor: pointer;
             text-align: center;
             flex: 1;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .nav-item.active {
@@ -194,7 +214,7 @@
         /* Carte interactive */
         .map-container {
             width: 100%;
-            height: 65%;
+            height: 60%;
             margin-bottom: 15px;
             border-radius: 15px;
             overflow: hidden;
@@ -376,14 +396,13 @@
             </div>
 
             <div id="user-action-block">
-                
                 <button class="btn" id="app-trigger-btn" onclick="triggerHardwareAction()">📱 Ouvrir avec mon téléphone</button>
                 <button class="btn btn-secondary" id="app-rfid-indicator" style="font-size:0.85rem; padding:8px;" disabled>💳 Ou passez votre carte RFID sur la borne</button>
                 
                 <div style="height:10px;"></div>
 
-                <button class="btn demo-element" id="demo-rfid-btn" onclick="triggerHardwareAction()">⚙️ ACTIONNER VIA SIMULATION RFID PHYSIQUE</button>
-                <p class="demo-text" id="demo-action-desc">Simule le badge physique.</p>
+                <button class="btn demo-element" id="demo-rfid-btn" onclick="triggerHardwareAction()">⚙️ DÉMO : Simuler Scan RFID (Ouverture)</button>
+                <p class="demo-text" id="demo-action-desc">Déclenche l'infrastructure par liaison sans contact.</p>
             </div>
             
             <button class="btn btn-danger" id="recovery-btn" style="margin-top:10px; display: none;" onclick="triggerRecoveryFlow()">🔄 Récupérer mon vélo</button>
@@ -463,7 +482,7 @@
     let associatedStationId = null; 
     let viewingStation = null; 
     let bikeIsStored = false;       
-    let systemState = "ready";      // ready, rotating, open, locked
+    let systemState = "ready";      
     let currentQRContext = ""; 
     let mapInitialized = false;
     let map = null;
@@ -484,8 +503,13 @@
         if(screenId === 'map-screen' || screenId === 'station-detail-screen') document.getElementById('nav-map').classList.add('active');
         if(screenId === 'profile-screen') document.getElementById('nav-profile').classList.add('active');
 
-        if (screenId === 'map-screen' && !mapInitialized) {
-            initMap();
+        // Correction du bug de redimensionnement de la carte sur mobile
+        if (screenId === 'map-screen') {
+            if (!mapInitialized) {
+                initMap();
+            } else if (map) {
+                setTimeout(() => { map.invalidateSize(); }, 200);
+            }
         }
     }
 
@@ -499,7 +523,7 @@
         Object.keys(stationsData).forEach(key => {
             const st = stationsData[key];
             const marker = L.marker([st.lat, st.lng]).addTo(map);
-            marker.bindPopup(`<b>${st.name}</b><br>Places libres : ${st.slots}/8<br><button onclick="openStationDetail(${key})" style="margin-top:5px; padding:2px 8px; cursor:pointer;">Voir l'occupation</button>`);
+            marker.bindPopup(`<b>${st.name}</b><br>Places libres : ${st.slots}/8<br><button onclick="openStationDetail(${key})" style="margin-top:5px; padding:4px 10px; cursor:pointer;">Voir l'occupation</button>`);
         });
     }
 
@@ -569,7 +593,6 @@
             
             document.getElementById('user-action-block').style.display = "block";
             
-            // Textes pour l'ouverture
             appBtn.innerText = "📱 Ouvrir avec mon téléphone";
             demoRfidBtn.innerText = "⚙️ DÉMO : Simuler Scan RFID (Ouverture)";
             demoDesc.innerText = "Déclenche l'infrastructure par liaison sans contact.";
@@ -616,7 +639,6 @@
         openQRScanner('recovery');
     }
 
-    // FONCTION UNIFIÉE D'ACTIONNEMENT DU MATÉRIEL (TELEPHONE OU RFID)
     function triggerHardwareAction(isRecoveryFlow = false) {
         const wheel = document.getElementById('wheel');
         const statusText = document.getElementById('status-text');
@@ -636,7 +658,6 @@
                 statusText.className = "door-status open";
                 wheel.classList.remove('rotating');
                 
-                // Le bouton de l'App bascule lui aussi dynamiquement sur la fermeture !
                 if(!isRecoveryFlow) {
                     appBtn.innerText = "📱 Fermer la porte avec mon téléphone";
                     demoRfidBtn.innerText = "⚙️ DÉMO : Simuler Scan RFID (Fermeture)";
