@@ -27,12 +27,12 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            height: 100dvh; /* Utilisation du dynamic viewport */
+            height: 100dvh; 
             color: var(--text-dark);
             overflow: hidden;
         }
 
-        /* 💻 PAR DÉFAUT : Format Smartphone simulé sur Ordinateur Bureau */
+        /* Format Smartphone simulé sur Ordinateur Bureau */
         .phone-container {
             width: 375px;
             height: 812px;
@@ -46,7 +46,7 @@
             border: 8px solid #333;
         }
 
-        /* 📱 RESPONSIVE : Plein écran automatique si on est sur un vrai Smartphone */
+        /* Plein écran automatique sur Smartphone */
         @media (max-width: 450px), (max-device-width: 450px) {
             body {
                 background-color: var(--bg-light);
@@ -55,7 +55,7 @@
             .phone-container {
                 width: 100vw;
                 height: 100vh;
-                height: 100dvh; /* Force le conteneur à respecter l'espace de Safari */
+                height: 100dvh; 
                 border-radius: 0;
                 border: none;
                 box-shadow: none;
@@ -68,7 +68,7 @@
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            padding-bottom: 110px; /* Augmenté pour ne jamais chevaucher la nav bar */
+            padding-bottom: 110px; 
         }
 
         .screen.active {
@@ -149,7 +149,7 @@
             color: white;
         }
 
-        /* ⚠️ STYLE DEMO / PROTOTYPAGE */
+        /* Style Démo Technique */
         .demo-element {
             font-family: 'Courier New', Courier, monospace !important;
             background: #fff3cd !important;
@@ -173,20 +173,19 @@
             margin-bottom: 10px;
         }
 
-        /* 🛠️ FIX SAFARI : Barre de navigation basse rehaussée */
+        /* Barre de navigation basse (Fix Safari) */
         .nav-bar {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 80px; /* Légèrement plus haute pour équilibrer le confort visuel */
+            height: 80px; 
             background-color: white;
             border-top: 1px solid #ddd;
             display: none;
             justify-content: space-around;
-            align-items: flex-start; /* Aligne le contenu vers le haut pour laisser de la place en bas */
-            padding-top: 12px; /* Repousse les icônes vers le haut de la barre */
+            align-items: flex-start; 
+            padding-top: 12px; 
             z-index: 1000;
-            /* Combine la zone safe d'iOS et une marge de sécurité pour l'URL Safari */
             padding-bottom: calc(env(safe-area-inset-bottom) + 15px); 
         }
 
@@ -204,7 +203,7 @@
             font-weight: bold;
         }
 
-        /* Cartes et Éléments */
+        /* Cartes */
         .station-card {
             background: white;
             padding: 15px;
@@ -217,7 +216,7 @@
         /* Carte interactive */
         .map-container {
             width: 100%;
-            height: 55%; /* Légèrement réduite pour laisser de la place aux boutons sur petits écrans */
+            height: 55%; 
             margin-bottom: 15px;
             border-radius: 15px;
             overflow: hidden;
@@ -228,7 +227,7 @@
             height: 100%;
         }
 
-        /* Graphique d'occupation avec Axe Y */
+        /* Graphique d'occupation */
         .graph-wrapper {
             display: flex;
             margin-top: 15px;
@@ -311,7 +310,7 @@
         .door-status.open { color: #5cb85c; }
         .door-status.rotating-text { color: #f0ad4e; }
 
-        /* Modale / Overlay de Simulation de Scan QR */
+        /* Modale Scan QR */
         .qr-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -404,7 +403,7 @@
                 
                 <div style="height:10px;"></div>
 
-                <button class="btn demo-element" id="demo-rfid-btn" onclick="triggerHardwareAction()">⚙️ DÉMO : Simuler Scan RFID (Ouverture)</button>
+                <button class="btn demo-element" id="demo-rfid-btn" onclick="triggerHardwareAction()">⚙️ DÉMO : Simuler Scan RFID</button>
                 <p class="demo-text" id="demo-action-desc">Déclenche l'infrastructure par liaison sans contact.</p>
             </div>
             
@@ -489,6 +488,7 @@
     let currentQRContext = ""; 
     let mapInitialized = false;
     let map = null;
+    let isCurrentFlowRecovery = false; // Permet de savoir si on est en train de sortir un vélo
 
     function navigateTo(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -550,6 +550,7 @@
         associatedStationId = viewingStation.id;
         bikeIsStored = false; 
         systemState = "ready";
+        isCurrentFlowRecovery = false;
         updateHomeUI();
         navigateTo('home-screen');
     }
@@ -557,6 +558,7 @@
     function cancelStationSelection() {
         associatedStationId = null;
         bikeIsStored = false;
+        isCurrentFlowRecovery = false;
         updateHomeUI();
     }
 
@@ -588,6 +590,7 @@
         wheel.className = "wheel-visual active-wheel";
 
         if (!bikeIsStored) {
+            // MODE DÉPÔT INITIAL
             placeText.innerText = "👉 Connecté à la borne. Prêt pour le dépôt.";
             placeText.style.color = "#666";
             statusText.innerText = "En attente d'ouverture...";
@@ -602,6 +605,7 @@
             recoveryBtn.style.display = "none"; 
             cancelBtn.style.display = "block";  
         } else {
+            // VÉLO STOCKÉ DANS LA BORNE
             placeText.innerText = "🔒 Votre vélo est sécurisé sur la Place #3";
             placeText.style.color = "var(--primary-color)";
             statusText.innerText = "Porte Fermée • Système Sécurisé";
@@ -628,12 +632,13 @@
             if(!associatedStationId) associatedStationId = 1; 
             bikeIsStored = false;
             systemState = "ready";
+            isCurrentFlowRecovery = false;
             updateHomeUI();
             triggerHardwareAction();
         } else if (currentQRContext === 'recovery') {
-            alert("✔ Proximité validée via QR Code ! Le système déverrouille l'accès.");
+            isCurrentFlowRecovery = true; // On passe officiellement en mode restitution !
             systemState = "ready"; 
-            triggerHardwareAction(true); 
+            triggerHardwareAction(); 
         }
     }
 
@@ -641,12 +646,13 @@
         openQRScanner('recovery');
     }
 
-    function triggerHardwareAction(isRecoveryFlow = false) {
+    function triggerHardwareAction() {
         const wheel = document.getElementById('wheel');
         const statusText = document.getElementById('status-text');
         const appBtn = document.getElementById('app-trigger-btn');
         const demoRfidBtn = document.getElementById('demo-rfid-btn');
         const demoDesc = document.getElementById('demo-action-desc');
+        const recoveryBtn = document.getElementById('recovery-btn');
 
         if (systemState === "ready") {
             systemState = "rotating";
@@ -654,17 +660,25 @@
             statusText.className = "door-status rotating-text";
             wheel.classList.add('rotating');
 
+            // Cache le bouton récupérer dès que l'action démarre pour éviter les conflits visuels
+            recoveryBtn.style.display = "none";
+
             setTimeout(() => {
                 systemState = "open";
-                statusText.innerText = isRecoveryFlow ? "Porte Ouverte - Retirez votre vélo" : "Porte Ouverte - Déposez votre vélo (Place #3)";
-                statusText.className = "door-status open";
                 wheel.classList.remove('rotating');
                 
-                if(!isRecoveryFlow) {
+                // Réajustement dynamique de l'affichage selon le cas (Dépôt VS Récupération)
+                if(!isCurrentFlowRecovery) {
+                    statusText.innerText = "Porte Ouverte - Déposez votre vélo (Place #3)";
+                    statusText.className = "door-status open";
                     appBtn.innerText = "📱 Fermer la porte avec mon téléphone";
                     demoRfidBtn.innerText = "⚙️ DÉMO : Simuler Scan RFID (Fermeture)";
                     demoDesc.innerText = "Simule la fermeture physique après verrouillage mécanique.";
                 } else {
+                    statusText.innerText = "Porte Ouverte - Retirez votre vélo";
+                    statusText.className = "door-status open";
+                    
+                    // Réaffichage immédiat des boutons d'actions pour fermer la porte (le bouton récupérer reste masqué !)
                     document.getElementById('user-action-block').style.display = "block";
                     appBtn.innerText = "📱 Fermer et verrouiller la WheelHouse";
                     demoRfidBtn.innerText = "⚙️ DÉMO : Simuler Fermeture RFID (Fin)";
@@ -681,16 +695,19 @@
             setTimeout(() => {
                 wheel.classList.remove('rotating');
                 
-                if(!isRecoveryFlow) {
+                if(!isCurrentFlowRecovery) {
+                    // CAS FIN DE DÉPÔT : Le vélo est maintenant enfermé
                     bikeIsStored = true;
                     systemState = "locked";
                     updateHomeUI();
                 } else {
-                    alert("Porte sécurisée. Merci d'avoir libéré la place !");
+                    // CAS FIN DE RÉCUPÉRATION : Le vélo est sorti, session terminée !
+                    alert("Porte sécurisée. Session clôturée. Merci d'avoir utilisé WheelHouse !");
                     associatedStationId = null;
                     bikeIsStored = false;
                     systemState = "ready";
-                    updateHomeUI();
+                    isCurrentFlowRecovery = false;
+                    updateHomeUI(); // Renvoie à l'écran d'accueil vide
                 }
             }, 3000);
         }
