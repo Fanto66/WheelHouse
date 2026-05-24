@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>WheelHouse Prototype</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -27,7 +27,9 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            height: 100dvh; /* Utilisation du dynamic viewport */
             color: var(--text-dark);
+            overflow: hidden;
         }
 
         /* 💻 PAR DÉFAUT : Format Smartphone simulé sur Ordinateur Bureau */
@@ -49,12 +51,11 @@
             body {
                 background-color: var(--bg-light);
                 align-items: flex-start;
-                height: 100vh;
-                overflow: hidden;
             }
             .phone-container {
                 width: 100vw;
                 height: 100vh;
+                height: 100dvh; /* Force le conteneur à respecter l'espace de Safari */
                 border-radius: 0;
                 border: none;
                 box-shadow: none;
@@ -67,7 +68,7 @@
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            padding-bottom: 90px; /* Un peu plus d'espace en bas pour les écrans à encoche */
+            padding-bottom: 110px; /* Augmenté pour ne jamais chevaucher la nav bar */
         }
 
         .screen.active {
@@ -127,7 +128,7 @@
             margin-top: 8px;
             text-align: center;
             text-decoration: none;
-            -webkit-tap-highlight-color: transparent; /* Évite le flash bleu sur mobile */
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn:disabled {
@@ -172,19 +173,21 @@
             margin-bottom: 10px;
         }
 
-        /* Barre de navigation basse (ajustée pour coller parfaitement sur mobile) */
+        /* 🛠️ FIX SAFARI : Barre de navigation basse rehaussée */
         .nav-bar {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 75px;
+            height: 80px; /* Légèrement plus haute pour équilibrer le confort visuel */
             background-color: white;
             border-top: 1px solid #ddd;
             display: none;
             justify-content: space-around;
-            align-items: center;
+            align-items: flex-start; /* Aligne le contenu vers le haut pour laisser de la place en bas */
+            padding-top: 12px; /* Repousse les icônes vers le haut de la barre */
             z-index: 1000;
-            padding-bottom: env(safe-area-inset-bottom); /* Gère l'encoche du bas sur iOS/Android */
+            /* Combine la zone safe d'iOS et une marge de sécurité pour l'URL Safari */
+            padding-bottom: calc(env(safe-area-inset-bottom) + 15px); 
         }
 
         .nav-item {
@@ -214,7 +217,7 @@
         /* Carte interactive */
         .map-container {
             width: 100%;
-            height: 60%;
+            height: 55%; /* Légèrement réduite pour laisser de la place aux boutons sur petits écrans */
             margin-bottom: 15px;
             border-radius: 15px;
             overflow: hidden;
@@ -503,7 +506,6 @@
         if(screenId === 'map-screen' || screenId === 'station-detail-screen') document.getElementById('nav-map').classList.add('active');
         if(screenId === 'profile-screen') document.getElementById('nav-profile').classList.add('active');
 
-        // Correction du bug de redimensionnement de la carte sur mobile
         if (screenId === 'map-screen') {
             if (!mapInitialized) {
                 initMap();
