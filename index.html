@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WheelHouse Prototype</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary-color: #0c432e; /* Vert sapin du logo */
+            --accent-color: #a3d9c9;  /* Vert clair/menthe du logo */
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --bg-light: #f4f7f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* Simulation de l'écran d'un smartphone */
+        .phone-container {
+            width: 375px;
+            height: 812px;
+            background-color: var(--bg-light);
+            border-radius: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border: 8px solid #333;
+        }
+
+        /* Écrans */
+        .screen {
+            display: none;
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            padding-bottom: 80px;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Écran de Connexion */
+        #login-screen {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .logo-text {
+            font-size: 2.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: var(--text-light);
+        }
+        .logo-sub {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: var(--accent-color);
+            margin-top: 5px;
+        }
+
+        .input-group {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+        }
+
+        /* Boutons de l'application réelle */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn:disabled {
+            background-color: #cccccc !important;
+            color: #666666 !important;
+            cursor: not-allowed !important;
+            border: none !important;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-danger {
+            background-color: #d9534f;
+            color: white;
+        }
+
+        /* ⚠️ STYLE DEMO / PROTOTYPAGE (JAUNE ET MONOSPACE) */
+        .demo-element {
+            font-family: 'Courier New', Courier, monospace !important;
+            background: #fff3cd !important;
+            color: #856404 !important;
+            border: 2px dashed #ece0b7 !important;
+            font-weight: bold;
+            font-size: 0.8rem !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 10px !important;
+            margin-top: 5px !important;
+        }
+        .demo-element:hover {
+            background: #ffeeba !important;
+        }
+        p.demo-text {
+            font-family: 'Courier New', Courier, monospace !important;
+            font-size: 0.7rem !important;
+            color: #a18222 !important;
+            text-align: center;
+            margin-top: 4px;
+            margin-bottom: 10px;
+        }
+
+        /* Barre de navigation basse */
+        .nav-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 70px;
+            background-color: white;
+            border-top: 1px solid #ddd;
+            display: none;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            font-size: 0.8rem;
+            color: #888;
+            cursor: pointer;
+            text-align: center;
+            flex: 1;
+        }
+
+        .nav-item.active {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        /* Cartes et Éléments */
+        .station-card {
+            background: white;
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* Carte interactive */
+        .map-container {
+            width: 100%;
+            height: 65%;
+            margin-bottom: 15px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Graphique d'occupation avec Axe Y */
+        .graph-wrapper {
+            display: flex;
+            margin-top: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 15px 10px 25px 5px;
+        }
+        
+        .axis-y {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 80px;
+            font-size: 0.65rem;
+            color: #777;
+            text-align: right;
+            padding-right: 8px;
+            border-right: 2px solid #ddd;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 80px;
+            flex: 1;
+            padding-left: 5px;
+        }
+        .chart-bar {
+            width: 12%;
+            background-color: var(--accent-color);
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            position: relative;
+        }
+        .chart-bar.peak {
+            background-color: var(--primary-color);
+        }
+        .chart-label {
+            font-size: 0.6rem;
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+        }
+
+        /* Roue / Plateforme */
+        .wheel-container {
+            width: 110px;
+            height: 110px;
+            margin: 10px auto;
+            position: relative;
+        }
+
+        .wheel-visual {
+            width: 100%;
+            height: 100%;
+            border: 8px dashed #ccc;
+            border-radius: 50%;
+            transition: transform 3s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .wheel-visual.active-wheel {
+            border-color: var(--primary-color);
+        }
+
+        .wheel-visual.rotating { transform: rotate(720deg); }
+
+        .door-status {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 5px;
+            color: #777;
+        }
+        .door-status.closed-locked { color: #0c432e; }
+        .door-status.open { color: #5cb85c; }
+        .door-status.rotating-text { color: #f0ad4e; }
+
+        /* Modale / Overlay de Simulation de Scan QR */
+        .qr-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        .qr-scanner-box {
+            width: 200px;
+            height: 200px;
+            border: 4px solid var(--accent-color);
+            margin: 20px 0;
+            position: relative;
+            background: linear-gradient(rgba(163,217,201,0.1), rgba(163,217,201,0.1));
+        }
+        .qr-scanner-box::after {
+            content: '';
+            position: absolute;
+            width: 100%; height: 2px;
+            background: red;
+            top: 0; left: 0;
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+
+    <div id="qr-overlay" class="qr-overlay">
+        <div class="demo-element" style="border-radius:5px; margin-bottom:10px;">[ MODE DÉMO : APPAREIL PHOTO ]</div>
+        <p id="qr-instructions">Alignez le QR Code de la station pour l'identification</p>
+        <div class="qr-scanner-box"></div>
+        <button class="btn demo-element" id="qr-action-btn" onclick="confirmQRScan()">⚙️ DÉMO : Détecter QR Code</button>
+        <button class="btn btn-secondary" style="color:white; border-color:white;" onclick="closeQRScanner()">Annuler</button>
+    </div>
+
+    <div id="login-screen" class="screen active">
+        <div style="margin-bottom: 40px; text-align: center;">
+            <div class="logo-text">WHEELHOUSE</div>
+            <div class="logo-sub">LIBÉREZ L'ESPACE • PROTÉGEZ VOS VÉLOS</div>
+        </div>
+        <div class="input-group"><input type="email" placeholder="Identifiant ou Email"></div>
+        <div class="input-group"><input type="password" placeholder="Mot de passe (optionnel)"></div>
+        <button class="btn" onclick="navigateTo('home-screen')">Connexion</button>
+        <p class="demo-text">Le bouton connexion fonctionne à vide pour le test.</p>
+    </div>
+
+    <div id="home-screen" class="screen">
+        <h2 style="color: var(--primary-color); margin-bottom: 10px;">Ma Station</h2>
+        
+        <div id="home-state-unselected" style="display: block;">
+            <div class="station-card">
+                <p style="margin-bottom: 15px; color:#555;">Vous n'avez pas sélectionné de WheelHouse ou aucun vélo n'est déposé.</p>
+                <button class="btn" onclick="openQRScanner('depot-direct')">📱 Scanner un QR Code sur borne</button>
+                <div style="margin: 10px 0; font-weight: bold; color: #888;">OU</div>
+                <button class="btn btn-secondary" onclick="navigateTo('map-screen')">📍 Choisir sur la carte</button>
+            </div>
+        </div>
+
+        <div id="home-state-selected" style="display: none;">
+            <div class="station-card">
+                <h3 id="current-station-name">Station : --</h3>
+                <p id="place-assignment-text" style="color: #666; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem;"></p>
+                
+                <div class="wheel-container">
+                    <div id="wheel" class="wheel-visual">
+                        <div style="width: 20px; height: 20px; background: var(--accent-color); border-radius:50%;"></div>
+                    </div>
+                </div>
+
+                <p style="font-size:0.85rem;">Statut de la structure :</p>
+                <div id="status-text" class="door-status">En attente...</div>
+            </div>
+
+            <div id="user-action-block">
+                
+                <button class="btn" id="app-trigger-btn" onclick="triggerHardwareAction()">📱 Ouvrir avec mon téléphone</button>
+                <button class="btn btn-secondary" id="app-rfid-indicator" style="font-size:0.85rem; padding:8px;" disabled>💳 Ou passez votre carte RFID sur la borne</button>
+                
+                <div style="height:10px;"></div>
+
+                <button class="btn demo-element" id="demo-rfid-btn" onclick="triggerHardwareAction()">⚙️ ACTIONNER VIA SIMULATION RFID PHYSIQUE</button>
+                <p class="demo-text" id="demo-action-desc">Simule le badge physique.</p>
+            </div>
+            
+            <button class="btn btn-danger" id="recovery-btn" style="margin-top:10px; display: none;" onclick="triggerRecoveryFlow()">🔄 Récupérer mon vélo</button>
+
+            <button class="btn btn-secondary" id="cancel-station-btn" style="margin-top: 8px; padding: 8px; font-size: 0.85rem;" onclick="cancelStationSelection()">Changer de station</button>
+        </div>
+    </div>
+
+    <div id="map-screen" class="screen">
+        <h2 style="color: var(--primary-color); margin-bottom: 10px;">Stations à proximité</h2>
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        <p style="font-size: 0.8rem; color:#666; text-align:center;">Cliquez sur un repère vert pour inspecter une WheelHouse.</p>
+    </div>
+
+    <div id="station-detail-screen" class="screen">
+        <button class="btn btn-secondary" style="width:auto; padding: 5px 10px; font-size:0.8rem; margin-bottom:15px;" onclick="navigateTo('map-screen')">⬅ Retour carte</button>
+        
+        <h2 id="detail-name" style="color: var(--primary-color);">WheelHouse - La Défense</h2>
+        <p id="detail-desc" style="color:#666; font-size:0.9rem; margin-bottom:15px;">Avenue du Général de Gaulle</p>
+
+        <div class="station-card">
+            <h4>Places Disponibles</h4>
+            <div style="font-size: 2rem; font-weight: bold; color: var(--primary-color); margin: 10px 0;">
+                <span id="detail-slots">--</span> / 8
+            </div>
+        </div>
+
+        <div class="station-card">
+            <h4>Occupation habituelle</h4>
+            <div class="graph-wrapper">
+                <div class="axis-y">
+                    <div>Plein</div>
+                    <div>Moyen</div>
+                    <div>Vide</div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-bar" style="height: 20%;"><span class="chart-label">08h</span></div>
+                    <div class="chart-bar peak" style="height: 85%;"><span class="chart-label">12h</span></div>
+                    <div class="chart-bar" style="height: 40%;"><span class="chart-label">14h</span></div>
+                    <div class="chart-bar peak" style="height: 90%;"><span class="chart-label">18h</span></div>
+                    <div class="chart-bar" style="height: 15%;"><span class="chart-label">22h</span></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" id="select-station-btn" onclick="selectStationFromDetail()">Sélectionner cette station</button>
+    </div>
+
+    <div id="profile-screen" class="screen">
+        <h2 style="color: var(--primary-color); margin-bottom: 15px;">Mon Compte</h2>
+        <div class="station-card" style="background: var(--primary-color); color:white; text-align:left;">
+            <h3>Jean Dupont</h3>
+            <p style="font-size:0.9rem; opacity:0.8; margin-top:5px;">ID : #RF-8492-WH</p>
+        </div>
+        <button class="btn btn-danger" onclick="navigateTo('login-screen')">Déconnexion</button>
+    </div>
+
+    <div id="main-nav" class="nav-bar">
+        <div class="nav-item active" id="nav-home" onclick="navigateTo('home-screen')">🏠<br>Accueil</div>
+        <div class="nav-item" id="nav-map" onclick="navigateTo('map-screen')">📍<br>Carte</div>
+        <div class="nav-item" id="nav-profile" onclick="navigateTo('profile-screen')">👤<br>Profil</div>
+    </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    const stationsData = {
+        1: { id: 1, name: "WheelHouse - Grande Arche", lat: 48.8925, lng: 2.2360, slots: 5, desc: "Parvis de la Défense" },
+        2: { id: 2, name: "WheelHouse - Les Quatre Temps", lat: 48.8905, lng: 2.2385, slots: 2, desc: "Sortie Zone Commerciale" },
+        3: { id: 3, name: "WheelHouse - Esplanade", lat: 48.8888, lng: 2.2445, slots: 7, desc: "Proche Bassin de Takis" }
+    };
+
+    let associatedStationId = null; 
+    let viewingStation = null; 
+    let bikeIsStored = false;       
+    let systemState = "ready";      // ready, rotating, open, locked
+    let currentQRContext = ""; 
+    let mapInitialized = false;
+    let map = null;
+
+    function navigateTo(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+
+        const navBar = document.getElementById('main-nav');
+        if (screenId === 'login-screen') {
+            navBar.style.display = 'none';
+        } else {
+            navBar.style.display = 'flex';
+        }
+
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        if(screenId === 'home-screen') document.getElementById('nav-home').classList.add('active');
+        if(screenId === 'map-screen' || screenId === 'station-detail-screen') document.getElementById('nav-map').classList.add('active');
+        if(screenId === 'profile-screen') document.getElementById('nav-profile').classList.add('active');
+
+        if (screenId === 'map-screen' && !mapInitialized) {
+            initMap();
+        }
+    }
+
+    function initMap() {
+        mapInitialized = true;
+        map = L.map('map').setView([48.8910, 2.2395], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        Object.keys(stationsData).forEach(key => {
+            const st = stationsData[key];
+            const marker = L.marker([st.lat, st.lng]).addTo(map);
+            marker.bindPopup(`<b>${st.name}</b><br>Places libres : ${st.slots}/8<br><button onclick="openStationDetail(${key})" style="margin-top:5px; padding:2px 8px; cursor:pointer;">Voir l'occupation</button>`);
+        });
+    }
+
+    function openStationDetail(id) {
+        viewingStation = stationsData[id];
+        document.getElementById('detail-name').innerText = viewingStation.name;
+        document.getElementById('detail-desc').innerText = viewingStation.desc;
+        document.getElementById('detail-slots').innerText = viewingStation.slots;
+
+        const selectBtn = document.getElementById('select-station-btn');
+        if (bikeIsStored && associatedStationId !== viewingStation.id) {
+            selectBtn.disabled = true;
+            selectBtn.innerText = "🚫 Station bloquée (Vélo stocké ailleurs)";
+        } else {
+            selectBtn.disabled = false;
+            selectBtn.innerText = "Sélectionner cette station";
+        }
+        navigateTo('station-detail-screen');
+    }
+
+    function selectStationFromDetail() {
+        associatedStationId = viewingStation.id;
+        bikeIsStored = false; 
+        systemState = "ready";
+        updateHomeUI();
+        navigateTo('home-screen');
+    }
+
+    function cancelStationSelection() {
+        associatedStationId = null;
+        bikeIsStored = false;
+        updateHomeUI();
+    }
+
+    function updateHomeUI() {
+        const stateUnselected = document.getElementById('home-state-unselected');
+        const stateSelected = document.getElementById('home-state-selected');
+        
+        if(!associatedStationId) {
+            stateUnselected.style.display = 'block';
+            stateSelected.style.display = 'none';
+            return;
+        }
+
+        stateUnselected.style.display = 'none';
+        stateSelected.style.display = 'block';
+
+        const currentStation = stationsData[associatedStationId];
+        document.getElementById('current-station-name').innerText = currentStation.name;
+        
+        const statusText = document.getElementById('status-text');
+        const placeText = document.getElementById('place-assignment-text');
+        const appBtn = document.getElementById('app-trigger-btn');
+        const demoRfidBtn = document.getElementById('demo-rfid-btn');
+        const demoDesc = document.getElementById('demo-action-desc');
+        const recoveryBtn = document.getElementById('recovery-btn');
+        const cancelBtn = document.getElementById('cancel-station-btn');
+        const wheel = document.getElementById('wheel');
+
+        wheel.className = "wheel-visual active-wheel";
+
+        if (!bikeIsStored) {
+            placeText.innerText = "👉 Connecté à la borne. Prêt pour le dépôt.";
+            placeText.style.color = "#666";
+            statusText.innerText = "En attente d'ouverture...";
+            statusText.className = "door-status";
+            
+            document.getElementById('user-action-block').style.display = "block";
+            
+            // Textes pour l'ouverture
+            appBtn.innerText = "📱 Ouvrir avec mon téléphone";
+            demoRfidBtn.innerText = "⚙️ DÉMO : Simuler Scan RFID (Ouverture)";
+            demoDesc.innerText = "Déclenche l'infrastructure par liaison sans contact.";
+            
+            recoveryBtn.style.display = "none"; 
+            cancelBtn.style.display = "block";  
+        } else {
+            placeText.innerText = "🔒 Votre vélo est sécurisé sur la Place #3";
+            placeText.style.color = "var(--primary-color)";
+            statusText.innerText = "Porte Fermée • Système Sécurisé";
+            statusText.className = "door-status closed-locked";
+            
+            document.getElementById('user-action-block').style.display = "none"; 
+            recoveryBtn.style.display = "block"; 
+            cancelBtn.style.display = "none";   
+        }
+    }
+
+    function openQRScanner(context) {
+        currentQRContext = context;
+        document.getElementById('qr-overlay').style.display = 'flex';
+    }
+
+    function closeQRScanner() {
+        document.getElementById('qr-overlay').style.display = 'none';
+    }
+
+    function confirmQRScan() {
+        closeQRScanner();
+        if (currentQRContext === 'depot-direct') {
+            if(!associatedStationId) associatedStationId = 1; 
+            bikeIsStored = false;
+            systemState = "ready";
+            updateHomeUI();
+            triggerHardwareAction();
+        } else if (currentQRContext === 'recovery') {
+            alert("✔ Proximité validée via QR Code ! Le système déverrouille l'accès.");
+            systemState = "ready"; 
+            triggerHardwareAction(true); 
+        }
+    }
+
+    function triggerRecoveryFlow() {
+        openQRScanner('recovery');
+    }
+
+    // FONCTION UNIFIÉE D'ACTIONNEMENT DU MATÉRIEL (TELEPHONE OU RFID)
+    function triggerHardwareAction(isRecoveryFlow = false) {
+        const wheel = document.getElementById('wheel');
+        const statusText = document.getElementById('status-text');
+        const appBtn = document.getElementById('app-trigger-btn');
+        const demoRfidBtn = document.getElementById('demo-rfid-btn');
+        const demoDesc = document.getElementById('demo-action-desc');
+
+        if (systemState === "ready") {
+            systemState = "rotating";
+            statusText.innerText = "Alignement mécanique en cours (Rotation...)";
+            statusText.className = "door-status rotating-text";
+            wheel.classList.add('rotating');
+
+            setTimeout(() => {
+                systemState = "open";
+                statusText.innerText = isRecoveryFlow ? "Porte Ouverte - Retirez votre vélo" : "Porte Ouverte - Déposez votre vélo (Place #3)";
+                statusText.className = "door-status open";
+                wheel.classList.remove('rotating');
+                
+                // Le bouton de l'App bascule lui aussi dynamiquement sur la fermeture !
+                if(!isRecoveryFlow) {
+                    appBtn.innerText = "📱 Fermer la porte avec mon téléphone";
+                    demoRfidBtn.innerText = "⚙️ DÉMO : Simuler Scan RFID (Fermeture)";
+                    demoDesc.innerText = "Simule la fermeture physique après verrouillage mécanique.";
+                } else {
+                    document.getElementById('user-action-block').style.display = "block";
+                    appBtn.innerText = "📱 Fermer et verrouiller la WheelHouse";
+                    demoRfidBtn.innerText = "⚙️ DÉMO : Simuler Fermeture RFID (Fin)";
+                    demoDesc.innerText = "Clôture la session utilisateur.";
+                }
+            }, 3000);
+
+        } else if (systemState === "open") {
+            systemState = "rotating";
+            statusText.innerText = "Fermeture & Sécurisation (Rotation...)";
+            statusText.className = "door-status rotating-text";
+            wheel.classList.add('rotating');
+
+            setTimeout(() => {
+                wheel.classList.remove('rotating');
+                
+                if(!isRecoveryFlow) {
+                    bikeIsStored = true;
+                    systemState = "locked";
+                    updateHomeUI();
+                } else {
+                    alert("Porte sécurisée. Merci d'avoir libéré la place !");
+                    associatedStationId = null;
+                    bikeIsStored = false;
+                    systemState = "ready";
+                    updateHomeUI();
+                }
+            }, 3000);
+        }
+    }
+</script>
+
+</body>
+</html>
